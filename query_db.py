@@ -48,10 +48,10 @@ def print_stats():
         agency_counts = Counter()
         for (ag,) in cursor.fetchall():
             if ag:
-                if ag == "Standard Voice / Patch" or ag.startswith("Unknown Station") or ag.startswith("Single Alert"):
+                if ag == "Standard Voice / Patch" or ag.startswith("Single Alert"):
                     parts = [ag]
                 else:
-                    parts = [p.strip() for p in ag.split(" / ")]
+                    parts = [p.strip() for p in re.split(r'\s+/\s+(?![^()]*\))', ag)]
                 for p in parts:
                     agency_counts[p] += 1
 

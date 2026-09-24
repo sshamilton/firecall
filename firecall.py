@@ -102,7 +102,7 @@ def log_dispatch_to_db(agency, tones, message, raw_message, channel, frequency, 
             if agencies is not None:
                 agencies_list = agencies
             elif agency and " / " in agency:
-                agencies_list = [ag.strip() for ag in agency.split(" / ")]
+                agencies_list = [ag.strip() for ag in re.split(r'\s+/\s+(?![^()]*\))', agency)]
             elif agency and agency != "Standard Voice / Patch" and not agency.startswith("Unknown") and not agency.startswith("Single Alert"):
                 agencies_list = [agency.strip()]
             else:
@@ -164,10 +164,10 @@ def print_stats():
         agency_counts = Counter()
         for (ag,) in cursor.fetchall():
             if ag:
-                if ag == "Standard Voice / Patch" or ag.startswith("Unknown Station") or ag.startswith("Single Alert"):
+                if ag == "Standard Voice / Patch" or ag.startswith("Single Alert"):
                     parts = [ag]
                 else:
-                    parts = [p.strip() for p in ag.split(" / ")]
+                    parts = [p.strip() for p in re.split(r'\s+/\s+(?![^()]*\))', ag)]
                 for p in parts:
                     agency_counts[p] += 1
 
@@ -247,6 +247,7 @@ def match_department(tones, tolerance=0.022):
     Matches detected audio tones against the QCII directory.
     Detects single-department calls, pager + siren sequences, and multi-agency
     mutual aid calls with multiple tone pairs (e.g. Agency A followed by Agency B).
+    Preserves and reports any unknown tone pairs as 'Unknown Station (fA Hz / fB Hz)'.
     Returns a combined string of matched agencies separated by ' / '.
     """
     if not tones:
@@ -255,7 +256,8 @@ def match_department(tones, tolerance=0.022):
     matched_agencies = []
     i = 0
     while i < len(tones) - 1:
-        found = False
+        # 1. Check if (tones[i], tones[i+1]) matches a known agency
+        matched_known = False
         for entry in ORANGE_COUNTY_TONES:
             a_match = abs(tones[i] - entry["tone_a"]) / entry["tone_a"] < tolerance
             b_match = abs(tones[i+1] - entry["tone_b"]) / entry["tone_b"] < tolerance
@@ -264,15 +266,32 @@ def match_department(tones, tolerance=0.022):
                 if ag not in matched_agencies:
                     matched_agencies.append(ag)
                 i += 2
-                found = True
+                matched_known = True
                 break
-        if not found:
-            i += 1
+        if matched_known:
+            continue
+
+        # 2. Not a known agency. Lookahead: does (tones[i+1], tones[i+2]) match a known agency?
+        if i + 2 < len(tones):
+            lookahead_match = False
+            for entry in ORANGE_COUNTY_TONES:
+                if abs(tones[i+1] - entry["tone_a"]) / entry["tone_a"] < tolerance and \
+                   abs(tones[i+2] - entry["tone_b"]) / entry["tone_b"] < tolerance:
+                    lookahead_match = True
+                    break
+            if lookahead_match:
+                # tones[i] was an isolated blip/tone, advance to the known match
+                i += 1
+                continue
+
+        # 3. Neither this pair nor shifted pair matches a known agency: record as unknown pair
+        unk_label = f"Unknown Station ({tones[i]} Hz / {tones[i+1]} Hz)"
+        if unk_label not in matched_agencies:
+            matched_agencies.append(unk_label)
+        i += 2
 
     if matched_agencies:
         return " / ".join(matched_agencies)
-    elif len(tones) >= 2:
-        return f"Unknown Station ({tones[0]} Hz / {tones[1]} Hz)"
     elif len(tones) == 1:
         return f"Single Alert Tone ({tones[0]} Hz)"
     return "Standard Voice / Patch"
@@ -414,7 +433,12 @@ def is_real_fire_call(text, tones=None, agency_name=None, transmission_sec=None,
     has_known_agency = bool(
         agency_name
         and agency_name != 'Standard Voice / Patch'
-        and not agency_name.startswith('Unknown Station')
+        and any(
+            not part.startswith('Unknown Station')
+            and not part.startswith('Single Alert')
+            and part != 'Standard Voice / Patch'
+            for part in agency_name.split(' / ')
+        )
     )
     has_tones = bool(tones and len(tones) >= 2)
 
@@ -579,8 +603,8 @@ def worker_transcribe():
                 print(f"\n[DECODED DISPATCH]: {cleaned_text}\n")
                 audio_url = f"{AUDIO_BASE_URL}/{filename}"
                 if " / " in agency_name:
-                    agencies_list = [ag.strip() for ag in agency_name.split(" / ")]
-                elif agency_name != "Standard Voice / Patch" and not agency_name.startswith("Unknown") and not agency_name.startswith("Single Alert"):
+                    agencies_list = [ag.strip() for ag in re.split(r'\s+/\s+(?![^()]*\))', agency_name)]
+                elif agency_name != "Standard Voice / Patch" and not agency_name.startswith("Single Alert"):
                     agencies_list = [agency_name.strip()]
                 else:
                     agencies_list = []
