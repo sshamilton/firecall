@@ -43,13 +43,19 @@ def print_stats():
         print(f"{'Agency / Department':<40} | {'Count':<6} | {'Share'}")
         print("-" * 68)
 
-        cursor.execute("""
-            SELECT agency, COUNT(*) as cnt
-            FROM dispatches
-            GROUP BY agency
-            ORDER BY cnt DESC
-        """)
-        for agency, count in cursor.fetchall():
+        cursor.execute("SELECT agency FROM dispatches WHERE agency IS NOT NULL")
+        from collections import Counter
+        agency_counts = Counter()
+        for (ag,) in cursor.fetchall():
+            if ag:
+                if ag == "Standard Voice / Patch" or ag.startswith("Unknown Station") or ag.startswith("Single Alert"):
+                    parts = [ag]
+                else:
+                    parts = [p.strip() for p in ag.split(" / ")]
+                for p in parts:
+                    agency_counts[p] += 1
+
+        for agency, count in agency_counts.most_common():
             pct = (count / total * 100) if total > 0 else 0
             print(f"{agency:<40} | {count:<6} | {pct:>5.1f}%")
 

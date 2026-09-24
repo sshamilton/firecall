@@ -8,11 +8,12 @@
 
 - **Continuous Audio Capture**: Streams raw audio from ALSA (`plughw:1,0`) at 48 kHz using an auto-recovering `arecord` pipeline.
 - **Voice Activity Detection (VAD)**: Utilizes `webrtcvad` with software gain and silence timeout tracking to detect carrier openings and buffer audio.
-- **Quick-Call II (QCII) Tone Decoder**: Scans the first 10 seconds of each transmission using FFT spectral analysis to detect paging tones, filtering out CTCSS/PL tones (below 280 Hz) and matching tone pairs against `tones.csv`.
+- **Quick-Call II (QCII) Tone Decoder**: Scans the first 25 seconds of each transmission using FFT spectral analysis to detect paging tones, filtering out CTCSS/PL tones (below 280 Hz) and matching tone pairs against `tones.csv`.
+- **Multi-Agency & Mutual Aid Detection**: Automatically decodes sequential tone pairs when multiple departments are alerted on a single incident (e.g., `Washingtonville FD / Salisbury Mills` or `Orange Lake FD / Winona Lake FD`), deduplicating station siren/pager sequences.
 - **GPU-Accelerated Speech-to-Text**: Offloads audio to an OpenAI Whisper API endpoint (`large-v3-turbo`) with customized emergency dispatch domain context prompts.
 - **Intelligent Dispatch Classification**: Filters out momentary squelch breaks (< 1.0s active transmission), background RF static, mic tests, and Whisper hallucinations (e.g., `"."`, `"The End"`, `"Music"`), while ensuring genuine calls ending with dispatcher phrases like *"Thank you"* are never dropped.
-- **Home Assistant Integration**: Sends rich JSON webhook payloads to Home Assistant containing agency name, tone frequencies, cleaned transcript message, frequency, and direct audio stream URLs.
-- **SQLite Database Logging**: Automatically stores all verified dispatches in `firecall.db` with indexed timestamps, tone frequencies, transcripts, and duration metrics.
+- **Home Assistant Integration**: Sends rich JSON webhook payloads to Home Assistant containing agency name (`agency` string and `agencies` list), tone frequencies, cleaned transcript message, frequency, and direct audio stream URLs.
+- **SQLite Database Logging**: Automatically stores all verified dispatches in `firecall.db` with indexed timestamps, tone frequencies, transcripts, agencies list, and duration metrics.
 - **CLI Analytics & Search Tool**: Includes `query_db.py` to search transcripts, filter by department, analyze regional volume, and export to CSV.
 
 ---
@@ -34,8 +35,8 @@
               ├─────────────────────────────┐
               ▼                             ▼
    [ Tone FFT Detection ]        [ Save 16 kHz Mono WAV ]
-   (Matches tones.csv)                      │
-              │                             ▼
+   (25s Window, Multi-Pair)                 │
+   (Matches tones.csv)                      ▼
               │                  [ Whisper GPU STT API ]
               │                  (large-v3-turbo Engine)
               │                             │
@@ -58,7 +59,7 @@
 ├── firecall.py       # Main service: audio capture, tone detection, STT worker, DB logging
 ├── query_db.py       # CLI reporting, search, and export tool for firecall.db
 ├── backfill_db.py    # One-off backfill tool to import historical logs into SQLite
-├── tones.csv         # Quick-Call II frequency table (Agency, Tone A Hz, Tone B Hz)
+├── tones.csv         # Quick-Call II frequency table (64+ agencies, Tone A Hz, Tone B Hz)
 ├── firecall.db       # SQLite database (auto-created, gitignored)
 ├── recordings/       # Timestamped WAV recordings (auto-managed, 7-day retention)
 └── README.md         # Documentation
@@ -74,7 +75,8 @@ Dispatches are stored in the `dispatches` table:
 |---|---|---|
 | `id` | `INTEGER PRIMARY KEY` | Auto-incrementing identifier |
 | `timestamp` | `DATETIME` | Time transmission occurred (`YYYY-MM-DD HH:MM:SS`) |
-| `agency` | `TEXT` | Matched agency (e.g., `Monroe`, `Walden`, `Standard Voice / Patch`) |
+| `agency` | `TEXT` | Matched agency string (e.g., `Monroe`, `Washingtonville FD / Salisbury Mills`) |
+| `agencies` | `TEXT` | JSON array of all matched agencies (e.g., `["Washingtonville FD", "Salisbury Mills"]`) |
 | `tones` | `TEXT` | JSON array of detected tone frequencies (e.g., `[1530.0, 1430.0]`) |
 | `message` | `TEXT` | Cleaned transcript sent to Home Assistant |
 | `raw_message` | `TEXT` | Unmodified transcription output from Whisper |

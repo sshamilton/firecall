@@ -1,35 +1,164 @@
-Goshen Fire,770,560
-Middletown,1430,1035
-Middletown 2?,610,835
-Washington Heights,1925,2085
-Vails Gate,790,955
-Port Jervis,1035,1110
-Florida,590,800
-Bullville,1520,1745
-Warwick,730,1285
-Goodwill Fire Department,790,1080
-Monroe,1600,1345
-Orange Lake FD,2260,1180
-Mechanicstown FD,1950,1405
-New Hampton FD,1925,810
-South Blooming Grove,1530,1430
-Central Woodbury FD,645,880
-Walden,2260,1345
-Highland Falls,880,1230
-Cornwall,1670,1035
-New Windsor,705,525
-Port Jervis FD,650,950
+# Orange County, NY Quick-Call II Tone Directory (154.205 MHz)
+# Format: Agency Name, Tone A (Hz), Tone B (Hz)
+
+# Goshen
 Goshen FD,810,1430
-Greenville FD,880,645
-Silver Lake FD,1925,2260
-Circleville,1925,1110
-Pocatello FD-Middletown,1925,1670
+Goshen FD,770,560
+
+# Middletown
+Middletown,1430,1035
+Middletown,610,835
+
+# Washington Heights
+Washington Heights,1925,2085
+
+# Vails Gate
+Vails Gate,790,955
 Vails Gate Fire Chief,790,880
+
+# Port Jervis
+Port Jervis,1035,1110
+Port Jervis FD,650,950
+
+# Florida
+Florida,590,800
+
+# Bullville
+Bullville,1520,1745
+
+# Warwick
+Warwick,730,1285
+Warwick,955,850
+
+# Goodwill
+Goodwill Fire Department,790,1080
+
+# Monroe
+Monroe,1600,1345
+
+# Orange Lake
+Orange Lake FD,2260,1180
+
+# Mechanicstown
+Mechanicstown FD,1950,1405
+
+# New Hampton
+New Hampton FD,1925,810
+
+# South Blooming Grove
+South Blooming Grove,1530,1430
+
+# Central Woodbury
+Central Woodbury FD,645,880
+
+# Walden
+Walden,2260,1345
+
+# Highland Falls
+Highland Falls,880,1230
+
+# Cornwall
+Cornwall,1670,1035
+
+# New Windsor
+New Windsor,705,525
+
+# Greenville
+Greenville FD,880,645
+
+# Silver Lake
+Silver Lake FD,1925,2260
+Silver Lake FD,860,700
+
+# Circleville
+Circleville,1925,1110
+
+# Pocatello
+Pocatello FD-Middletown,1925,1670
+
+# Chester
 Chester FD,1925,715
+Chester FD,667.5,532.5
+
+# Cronomer Valley
 Cronomer Valley FD-Newburgh,1035,1600
+Cronomer Valley Duty Chief,1035,1745
+
+# Washingtonville
 Washingtonville FD,670,1080
+
+# Coldenham
 Coldenham FD-Walden,2690,1230
+
+# Montgomery
 Montgomery FD,1745,1285
-Chester FD,1925,715
+Montgomery FD,862.5,607.5
+
+# Salisbury Mills
 Salisbury Mills,1285,730
+
+# Cuddebackville
 Cuddebackville,645,1285
+
+# Maybrook
+Maybrook FD,1345,1080
+Maybrook FD,742.5,862.5
+
+# Winona Lake
+Winona Lake FD,2260,1035
+
+# Pine Bush
+Pine Bush FD,2575,1130
+
+# Campbell Hall
+Campbell Hall FD,525,955
+Campbell Hall FD,907.5,817.5
+
+# Johnson
+Johnson FD,1180,950
+
+# Unionville
+Unionville FD,1230,1345
+
+# Slate Hill
+Slate Hill FD,855,1355
+Slate Hill FD,1500,855
+
+# Cornwall-on-Hudson
+Cornwall-on-Hudson FD,950,1230
+
+# Fort Montgomery
+Fort Montgomery FD,615,1230
+
+# Otisville
+Otisville FD,800,1285
+Otisville FD,560,880
+Otisville Duty Chief,800,1345
+
+# Huguenot
+Huguenot FD,1180,800
+Huguenot Duty Chief,1180,855
+
+# Tuxedo
+Tuxedo FD,730,977
+
+# Greenwood Lake
+Greenwood Lake FD,855,1435
+
+# Pine Island
+Pine Island FD,800,1745
+
+# Sparrow Bush
+Sparrow Bush FD,870,1745
+
+# Middle Hope
+Middle Hope FD,992,1345
+
+# Howells
+Howells FD,1925,2470
+
+# Harriman
+Harriman FD,1122,525
+
+# Lakeside
+Lakeside FD,1345,645

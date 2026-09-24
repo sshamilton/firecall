@@ -82,41 +82,56 @@ def init_db():
                 audio_url TEXT,
                 total_duration_sec REAL,
                 active_transmission_sec REAL,
-                speech_sec REAL
+                speech_sec REAL,
+                agencies TEXT
             )
         """)
+        try:
+            cursor.execute("ALTER TABLE dispatches ADD COLUMN agencies TEXT")
+        except sqlite3.OperationalError:
+            pass
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_dispatches_agency ON dispatches(agency)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_dispatches_timestamp ON dispatches(timestamp)")
         conn.commit()
 
-def log_dispatch_to_db(agency, tones, message, raw_message, channel, frequency, audio_file, audio_url, total_duration_sec, active_transmission_sec, speech_sec, timestamp=None):
+def log_dispatch_to_db(agency, tones, message, raw_message, channel, frequency, audio_file, audio_url, total_duration_sec, active_transmission_sec, speech_sec, timestamp=None, agencies=None):
     try:
         with sqlite3.connect(DB_PATH) as conn:
             cursor = conn.cursor()
             tones_json = json.dumps(tones) if tones else "[]"
+            if agencies is not None:
+                agencies_list = agencies
+            elif agency and " / " in agency:
+                agencies_list = [ag.strip() for ag in agency.split(" / ")]
+            elif agency and agency != "Standard Voice / Patch" and not agency.startswith("Unknown") and not agency.startswith("Single Alert"):
+                agencies_list = [agency.strip()]
+            else:
+                agencies_list = []
+            agencies_json = json.dumps(agencies_list)
+
             if timestamp:
                 cursor.execute("""
                     INSERT INTO dispatches (
                         timestamp, agency, tones, message, raw_message,
                         channel, frequency, audio_file, audio_url,
-                        total_duration_sec, active_transmission_sec, speech_sec
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        total_duration_sec, active_transmission_sec, speech_sec, agencies
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     timestamp, agency, tones_json, message, raw_message,
                     channel, frequency, str(audio_file), audio_url,
-                    total_duration_sec, active_transmission_sec, speech_sec
+                    total_duration_sec, active_transmission_sec, speech_sec, agencies_json
                 ))
             else:
                 cursor.execute("""
                     INSERT INTO dispatches (
                         agency, tones, message, raw_message,
                         channel, frequency, audio_file, audio_url,
-                        total_duration_sec, active_transmission_sec, speech_sec
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        total_duration_sec, active_transmission_sec, speech_sec, agencies
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     agency, tones_json, message, raw_message,
                     channel, frequency, str(audio_file), audio_url,
-                    total_duration_sec, active_transmission_sec, speech_sec
+                    total_duration_sec, active_transmission_sec, speech_sec, agencies_json
                 ))
             conn.commit()
             print(f"[DB] Logged dispatch #{cursor.lastrowid} ({agency}) to {DB_PATH.name}")
@@ -144,14 +159,19 @@ def print_stats():
         print(f"{'Agency / Department':<38} | {'Count':<6} | {'Share'}")
         print("-" * 65)
 
-        cursor.execute("""
-            SELECT agency, COUNT(*) as cnt
-            FROM dispatches
-            GROUP BY agency
-            ORDER BY cnt DESC
-        """)
-        rows = cursor.fetchall()
-        for agency, count in rows:
+        cursor.execute("SELECT agency FROM dispatches WHERE agency IS NOT NULL")
+        from collections import Counter
+        agency_counts = Counter()
+        for (ag,) in cursor.fetchall():
+            if ag:
+                if ag == "Standard Voice / Patch" or ag.startswith("Unknown Station") or ag.startswith("Single Alert"):
+                    parts = [ag]
+                else:
+                    parts = [p.strip() for p in ag.split(" / ")]
+                for p in parts:
+                    agency_counts[p] += 1
+
+        for agency, count in agency_counts.most_common():
             pct = (count / total * 100) if total > 0 else 0
             print(f"{agency:<38} | {count:<6} | {pct:>5.1f}%")
 
@@ -222,14 +242,36 @@ if csv_path.exists():
 else:
     print(f"[WARN] {csv_path.name} not found! Starting with an empty tone directory.")
 
-def match_department(tones):
-    if len(tones) >= 2:
-        for i in range(len(tones) - 1):
-            for entry in ORANGE_COUNTY_TONES:
-                a_match = abs(tones[i] - entry["tone_a"]) / entry["tone_a"] < 0.02
-                b_match = abs(tones[i+1] - entry["tone_b"]) / entry["tone_b"] < 0.02
-                if a_match and b_match:
-                    return entry["agency"]
+def match_department(tones, tolerance=0.022):
+    """
+    Matches detected audio tones against the QCII directory.
+    Detects single-department calls, pager + siren sequences, and multi-agency
+    mutual aid calls with multiple tone pairs (e.g. Agency A followed by Agency B).
+    Returns a combined string of matched agencies separated by ' / '.
+    """
+    if not tones:
+        return "Standard Voice / Patch"
+
+    matched_agencies = []
+    i = 0
+    while i < len(tones) - 1:
+        found = False
+        for entry in ORANGE_COUNTY_TONES:
+            a_match = abs(tones[i] - entry["tone_a"]) / entry["tone_a"] < tolerance
+            b_match = abs(tones[i+1] - entry["tone_b"]) / entry["tone_b"] < tolerance
+            if a_match and b_match:
+                ag = entry["agency"]
+                if ag not in matched_agencies:
+                    matched_agencies.append(ag)
+                i += 2
+                found = True
+                break
+        if not found:
+            i += 1
+
+    if matched_agencies:
+        return " / ".join(matched_agencies)
+    elif len(tones) >= 2:
         return f"Unknown Station ({tones[0]} Hz / {tones[1]} Hz)"
     elif len(tones) == 1:
         return f"Single Alert Tone ({tones[0]} Hz)"
@@ -237,13 +279,14 @@ def match_department(tones):
 
 def detect_alert_tones(audio_16k_bytes, sample_rate=16000):
     """
-    Scans the first 10 seconds for sustained Quick-Call II paging tones.
-    Filters out CTCSS/PL tone hum below 250 Hz.
+    Scans the first 25 seconds for sustained Quick-Call II paging tones.
+    Captures multi-department dispatch sequences and pager + siren pairs.
+    Filters out CTCSS/PL tone hum below 280 Hz.
     """
     try:
         samples = np.frombuffer(audio_16k_bytes, dtype=np.int16).astype(np.float32)
-        # Scan first 10 seconds (standard QCII window)
-        max_scan_samples = min(len(samples), sample_rate * 10)
+        # Scan first 25 seconds (covers multi-department sequential tone dispatches)
+        max_scan_samples = min(len(samples), sample_rate * 25)
         scan_audio = samples[:max_scan_samples]
 
         # 200ms window with 50% overlap for high frequency resolution (~5 Hz bins)
@@ -318,7 +361,9 @@ KNOWN_AGENCIES = {
     'cronomer valley', 'washingtonville', 'coldenham', 'montgomery',
     'salisbury mills', 'cuddebackville', 'west point', 'fort montgomery',
     'maybrook', 'middle hope', 'slate hill', 'johnson', 'unionville',
-    'otisville', 'marlboro', 'minisink', 'pine bush', 'vales gate'
+    'otisville', 'marlboro', 'minisink', 'pine bush', 'vales gate',
+    'winona lake', 'campbell hall', 'tuxedo', 'greenwood lake', 'pine island',
+    'sparrow bush', 'howells', 'harriman', 'lakeside', 'huguenot'
 }
 
 DISPATCH_KEYWORDS = {
@@ -533,8 +578,16 @@ def worker_transcribe():
                 cleaned_text = clean_dispatch_text(text)
                 print(f"\n[DECODED DISPATCH]: {cleaned_text}\n")
                 audio_url = f"{AUDIO_BASE_URL}/{filename}"
+                if " / " in agency_name:
+                    agencies_list = [ag.strip() for ag in agency_name.split(" / ")]
+                elif agency_name != "Standard Voice / Patch" and not agency_name.startswith("Unknown") and not agency_name.startswith("Single Alert"):
+                    agencies_list = [agency_name.strip()]
+                else:
+                    agencies_list = []
+
                 payload = {
                     "agency": agency_name,
+                    "agencies": agencies_list,
                     "tones": [float(t) for t in tones_found],
                     "message": cleaned_text,
                     "raw_message": text,
@@ -557,6 +610,7 @@ def worker_transcribe():
                     total_duration_sec=round(len(audio_16k) / (WHISPER_RATE * 2), 1),
                     active_transmission_sec=round(transmission_sec, 2) if transmission_sec is not None else None,
                     speech_sec=round(speech_sec, 2) if speech_sec is not None else None,
+                    agencies=agencies_list
                 )
 
                 # 6. Webhook Post with strict timeout
