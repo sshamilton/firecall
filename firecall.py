@@ -1,5 +1,7 @@
 import re
 import collections
+import json
+import sqlite3
 import os
 import queue
 import signal
@@ -57,6 +59,131 @@ def cleanup_old_recordings(max_days=7):
     for f in RECORDINGS_DIR.glob("*.wav"):
         if f.stat().st_mtime < cutoff:
             f.unlink()
+
+# ==========================================
+#              DATABASE STORAGE
+# ==========================================
+DB_PATH = Path.home() / "firecall" / "firecall.db"
+
+def init_db():
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS dispatches (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                agency TEXT,
+                tones TEXT,
+                message TEXT,
+                raw_message TEXT,
+                channel TEXT,
+                frequency TEXT,
+                audio_file TEXT,
+                audio_url TEXT,
+                total_duration_sec REAL,
+                active_transmission_sec REAL,
+                speech_sec REAL
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_dispatches_agency ON dispatches(agency)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_dispatches_timestamp ON dispatches(timestamp)")
+        conn.commit()
+
+def log_dispatch_to_db(agency, tones, message, raw_message, channel, frequency, audio_file, audio_url, total_duration_sec, active_transmission_sec, speech_sec, timestamp=None):
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            tones_json = json.dumps(tones) if tones else "[]"
+            if timestamp:
+                cursor.execute("""
+                    INSERT INTO dispatches (
+                        timestamp, agency, tones, message, raw_message,
+                        channel, frequency, audio_file, audio_url,
+                        total_duration_sec, active_transmission_sec, speech_sec
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    timestamp, agency, tones_json, message, raw_message,
+                    channel, frequency, str(audio_file), audio_url,
+                    total_duration_sec, active_transmission_sec, speech_sec
+                ))
+            else:
+                cursor.execute("""
+                    INSERT INTO dispatches (
+                        agency, tones, message, raw_message,
+                        channel, frequency, audio_file, audio_url,
+                        total_duration_sec, active_transmission_sec, speech_sec
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    agency, tones_json, message, raw_message,
+                    channel, frequency, str(audio_file), audio_url,
+                    total_duration_sec, active_transmission_sec, speech_sec
+                ))
+            conn.commit()
+            print(f"[DB] Logged dispatch #{cursor.lastrowid} ({agency}) to {DB_PATH.name}")
+    except Exception as e:
+        print(f"[ERROR DB]: Failed to insert dispatch into sqlite: {e}")
+
+def print_stats():
+    init_db()
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM dispatches")
+        total = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM dispatches WHERE timestamp >= datetime('now', '-24 hours')")
+        last_24h = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM dispatches WHERE timestamp >= datetime('now', '-7 days')")
+        last_7d = cursor.fetchone()[0]
+
+        print("=" * 65)
+        print(f"       ORANGE COUNTY FIRE DISPATCH STATS ({DB_PATH.name})")
+        print("=" * 65)
+        print(f"Total Dispatches: {total:<8} | Last 24 Hours: {last_24h:<6} | Last 7 Days: {last_7d}")
+        print("-" * 65)
+        print(f"{'Agency / Department':<38} | {'Count':<6} | {'Share'}")
+        print("-" * 65)
+
+        cursor.execute("""
+            SELECT agency, COUNT(*) as cnt
+            FROM dispatches
+            GROUP BY agency
+            ORDER BY cnt DESC
+        """)
+        rows = cursor.fetchall()
+        for agency, count in rows:
+            pct = (count / total * 100) if total > 0 else 0
+            print(f"{agency:<38} | {count:<6} | {pct:>5.1f}%")
+
+        print("=" * 65)
+        print("\nRecent 5 Dispatches:")
+        cursor.execute("""
+            SELECT timestamp, agency, message
+            FROM dispatches
+            ORDER BY id DESC LIMIT 5
+        """)
+        for ts, ag, msg in cursor.fetchall():
+            excerpt = (msg[:65] + "...") if len(msg) > 65 else msg
+            print(f" [{ts}] {ag}: {excerpt}")
+        print()
+
+def export_to_csv(output_path="dispatches.csv"):
+    init_db()
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, timestamp, agency, tones, message, channel, frequency, total_duration_sec, active_transmission_sec, audio_url
+            FROM dispatches
+            ORDER BY id ASC
+        """)
+        rows = cursor.fetchall()
+        with open(output_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(["id", "timestamp", "agency", "tones", "message", "channel", "frequency", "total_duration_sec", "active_transmission_sec", "audio_url"])
+            writer.writerows(rows)
+        print(f"[EXPORT] Successfully exported {len(rows)} records to {output_path}")
+
+init_db()
 
 running = threading.Event()
 running.set()
@@ -306,25 +433,7 @@ def is_real_fire_call(text, tones=None, agency_name=None, transmission_sec=None,
 #              INITIALIZATION
 # ==========================================
 vad = webrtcvad.Vad(VAD_AGGRESSIVENESS)
-
-# Direct arecord capture pipe
-arecord_cmd = [
-    "arecord",
-    "-D", ALSA_DEVICE,
-    "-f", "S16_LE",
-    "-r", str(NATIVE_RATE),
-    "-c", "1",
-    "-t", "raw",
-    "-q"
-]
-
-print(f"[DEBUG] Spawning arecord pipe: {' '.join(arecord_cmd)}")
-audio_proc = subprocess.Popen(
-    arecord_cmd,
-    stdout=subprocess.PIPE,
-    stderr=subprocess.PIPE,
-    bufsize=CHUNK_BYTES * 10
-)
+audio_proc = None
 
 
 # ==========================================
@@ -435,7 +544,22 @@ def worker_transcribe():
                     "audio_url": audio_url
                 }
 
-                # 5. Webhook Post with strict timeout
+                # 5. Log to SQLite Database
+                log_dispatch_to_db(
+                    agency=agency_name,
+                    tones=[float(t) for t in tones_found],
+                    message=cleaned_text,
+                    raw_message=text,
+                    channel="Orange County Fire Paging",
+                    frequency="154.205 MHz",
+                    audio_file=str(save_path),
+                    audio_url=audio_url,
+                    total_duration_sec=round(len(audio_16k) / (WHISPER_RATE * 2), 1),
+                    active_transmission_sec=round(transmission_sec, 2) if transmission_sec is not None else None,
+                    speech_sec=round(speech_sec, 2) if speech_sec is not None else None,
+                )
+
+                # 6. Webhook Post with strict timeout
                 try:
                     print(f"[DEBUG Worker #{counter}] Posting to Home Assistant: {HA_URL}...")
                     resp = requests.post(HA_URL, json=payload, timeout=(2.0, 4.0))
@@ -453,143 +577,116 @@ def worker_transcribe():
             print(f"[DEBUG Worker #{counter}] Finished processing. Ready for next call.\n")
         cleanup_old_recordings(max_days=7)
 
-threading.Thread(target=worker_transcribe, daemon=True).start()
+def main():
+    global audio_proc
+    threading.Thread(target=worker_transcribe, daemon=True).start()
 
+    audio_proc = spawn_arecord()
 
-# ==========================================
-#         CLEAN SHUTDOWN HANDLER
-# ==========================================
-def shutdown_handler(sig, frame):
-    print("\n\n[Shutting down cleanly via SIGINT...]")
-    running.clear()
-    try:
-        audio_proc.terminate()
-        audio_proc.kill()
-    except Exception:
-        pass
-    print("[Exited successfully]")
-    os._exit(0)
+    print(f"\nMonitoring Orange County Fire (154.205 MHz via {ALSA_DEVICE})... (Ctrl+C to exit)")
 
-signal.signal(signal.SIGINT, shutdown_handler)
-signal.signal(signal.SIGTERM, shutdown_handler)
+    pre_buffer = collections.deque(maxlen=15)
+    recording = False
+    voiced_frames = []
+    last_speech_time = 0.0
+    record_start_time = 0.0
+    speech_frames_count = 0
+    last_heartbeat = time.time()
+    frame_counter = 0
 
-
-def spawn_arecord():
-    """Spawns or restarts the arecord capture process."""
-    cmd = [
-        "arecord",
-        "-D", ALSA_DEVICE,
-        "-f", "S16_LE",
-        "-r", str(NATIVE_RATE),
-        "-c", "1",
-        "-t", "raw",
-        "-q",
-        "--buffer-size=192000"  # Expanded hardware ring buffer to prevent EIO drops
-    ]
-    return subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        bufsize=CHUNK_BYTES * 20
-    )
-
-audio_proc = spawn_arecord()
-
-# ==========================================
-#              MAIN AUDIO LOOP
-# ==========================================
-print(f"\nMonitoring Orange County Fire (154.205 MHz via {ALSA_DEVICE})... (Ctrl+C to exit)")
-
-pre_buffer = collections.deque(maxlen=15)
-recording = False
-voiced_frames = []
-last_speech_time = 0.0
-record_start_time = 0.0
-speech_frames_count = 0
-last_heartbeat = time.time()
-frame_counter = 0
-
-while running.is_set():
-    raw_frame = audio_proc.stdout.read(CHUNK_BYTES)
-    
-    # Handle arecord death or I/O error automatically
-    if not raw_frame or len(raw_frame) < CHUNK_BYTES:
-        retcode = audio_proc.poll()
-        if retcode is not None:
-            err_msg = audio_proc.stderr.read().decode('utf-8', errors='ignore').strip()
-            print(f"\n[WARNING]: arecord dropped ({err_msg}). Reconnecting audio interface in 1s...")
-            try:
-                audio_proc.terminate()
-                audio_proc.kill()
-                audio_proc.wait(timeout=2.0) 
-            except Exception:
-                pass
-
-            subprocess.run(["killall", "-9", "arecord"], stderr=subprocess.DEVNULL)
-            time.sleep(1.0)
-            audio_proc = spawn_arecord()
-            print("[RECONNECTED]: Audio capture stream restored.")
-            continue
-        time.sleep(0.005)
-        continue
-
-    frame_counter += 1
-    current_time = time.time()
-
-    if current_time - last_heartbeat > 30.0:
-        last_heartbeat = current_time
-        q_size = transcription_queue.qsize()
-        # print(f"\n[Audio Loop Heartbeat] Active | Frames: {frame_counter} | Pending in Queue: {q_size}")
-
-    samples = np.frombuffer(raw_frame, dtype=np.int16).astype(np.float32)
-
-    if SOFTWARE_GAIN != 1.0:
-        samples = samples * SOFTWARE_GAIN
-        samples = np.clip(samples, -32768, 32767)
-
-    boosted_frame = samples.astype(np.int16).tobytes()
-    rms = int(np.sqrt(np.mean(samples**2)))
-    is_speech = vad.is_speech(boosted_frame, NATIVE_RATE)
-
-    if rms > 50:
-        status = "SIGNAL DETECTED" if is_speech else "STATIC/NOISE"
-        print(f"\r[Live Monitor] Level: {rms:<6} | VAD State: {status:<15}", end="", flush=True)
-
-    if not recording:
-        pre_buffer.append(boosted_frame)
-        if is_speech:
-            recording = True
-            record_start_time = current_time
-            last_speech_time = current_time
-            speech_frames_count = 1
-            print("\n[--> Squelch Open: Recording Dispatch...]")
-            voiced_frames = list(pre_buffer)
-            pre_buffer.clear()
-    else:
-        voiced_frames.append(boosted_frame)
-        if is_speech:
-            last_speech_time = current_time
-            speech_frames_count += 1
-
-        silence_duration = current_time - last_speech_time
-        total_duration = current_time - record_start_time
-
-        if silence_duration >= SILENCE_TIMEOUT_SEC or total_duration >= MAX_DISPATCH_SEC:
-            recording = False
-            transmission_duration = max(0.0, last_speech_time - record_start_time)
-            speech_duration = speech_frames_count * (CHUNK_DURATION_MS / 1000.0)
-            print(f"\n[--< Squelch Closed: Queuing {round(total_duration, 1)}s of audio (active: {round(transmission_duration, 1)}s) for processing...]")
-            if len(voiced_frames) > 15:
+    while running.is_set():
+        raw_frame = audio_proc.stdout.read(CHUNK_BYTES)
+        
+        # Handle arecord death or I/O error automatically
+        if not raw_frame or len(raw_frame) < CHUNK_BYTES:
+            retcode = audio_proc.poll()
+            if retcode is not None:
+                err_msg = audio_proc.stderr.read().decode('utf-8', errors='ignore').strip()
+                print(f"\n[WARNING]: arecord dropped ({err_msg}). Reconnecting audio interface in 1s...")
                 try:
-                    meta = {
-                        "transmission_sec": transmission_duration,
-                        "speech_sec": speech_duration,
-                        "total_sec": total_duration
-                    }
-                    transcription_queue.put_nowait((list(voiced_frames), meta))
-                except queue.Full:
-                    print("\n[WARNING]: Transcription queue is full! Dropping chunk.")
-            voiced_frames = []
-            pre_buffer.clear()
-            speech_frames_count = 0
+                    audio_proc.terminate()
+                    audio_proc.kill()
+                    audio_proc.wait(timeout=2.0) 
+                except Exception:
+                    pass
+
+                subprocess.run(["killall", "-9", "arecord"], stderr=subprocess.DEVNULL)
+                time.sleep(1.0)
+                audio_proc = spawn_arecord()
+                print("[RECONNECTED]: Audio capture stream restored.")
+                continue
+            time.sleep(0.005)
+            continue
+
+        frame_counter += 1
+        current_time = time.time()
+
+        if current_time - last_heartbeat > 30.0:
+            last_heartbeat = current_time
+            q_size = transcription_queue.qsize()
+            # print(f"\n[Audio Loop Heartbeat] Active | Frames: {frame_counter} | Pending in Queue: {q_size}")
+
+        samples = np.frombuffer(raw_frame, dtype=np.int16).astype(np.float32)
+
+        if SOFTWARE_GAIN != 1.0:
+            samples = samples * SOFTWARE_GAIN
+            samples = np.clip(samples, -32768, 32767)
+
+        boosted_frame = samples.astype(np.int16).tobytes()
+        rms = int(np.sqrt(np.mean(samples**2)))
+        is_speech = vad.is_speech(boosted_frame, NATIVE_RATE)
+
+        if rms > 50:
+            status = "SIGNAL DETECTED" if is_speech else "STATIC/NOISE"
+            print(f"\r[Live Monitor] Level: {rms:<6} | VAD State: {status:<15}", end="", flush=True)
+
+        if not recording:
+            pre_buffer.append(boosted_frame)
+            if is_speech:
+                recording = True
+                record_start_time = current_time
+                last_speech_time = current_time
+                speech_frames_count = 1
+                print("\n[--> Squelch Open: Recording Dispatch...]")
+                voiced_frames = list(pre_buffer)
+                pre_buffer.clear()
+        else:
+            voiced_frames.append(boosted_frame)
+            if is_speech:
+                last_speech_time = current_time
+                speech_frames_count += 1
+
+            silence_duration = current_time - last_speech_time
+            total_duration = current_time - record_start_time
+
+            if silence_duration >= SILENCE_TIMEOUT_SEC or total_duration >= MAX_DISPATCH_SEC:
+                recording = False
+                transmission_duration = max(0.0, last_speech_time - record_start_time)
+                speech_duration = speech_frames_count * (CHUNK_DURATION_MS / 1000.0)
+                print(f"\n[--< Squelch Closed: Queuing {round(total_duration, 1)}s of audio (active: {round(transmission_duration, 1)}s) for processing...]")
+                if len(voiced_frames) > 15:
+                    try:
+                        meta = {
+                            "transmission_sec": transmission_duration,
+                            "speech_sec": speech_duration,
+                            "total_sec": total_duration
+                        }
+                        transcription_queue.put_nowait((list(voiced_frames), meta))
+                    except queue.Full:
+                        print("\n[WARNING]: Transcription queue is full! Dropping chunk.")
+                voiced_frames = []
+                pre_buffer.clear()
+                speech_frames_count = 0
+
+if __name__ == "__main__":
+    if "--stats" in sys.argv:
+        print_stats()
+        sys.exit(0)
+
+    if "--export-csv" in sys.argv:
+        csv_file = sys.argv[2] if len(sys.argv) > 2 else "dispatches.csv"
+        export_to_csv(csv_file)
+        sys.exit(0)
+
+    main()
 
