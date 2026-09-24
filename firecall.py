@@ -577,6 +577,44 @@ def worker_transcribe():
             print(f"[DEBUG Worker #{counter}] Finished processing. Ready for next call.\n")
         cleanup_old_recordings(max_days=7)
 
+# ==========================================
+#         CLEAN SHUTDOWN HANDLER
+# ==========================================
+def shutdown_handler(sig, frame):
+    print("\n\n[Shutting down cleanly via SIGINT...]")
+    running.clear()
+    try:
+        if audio_proc is not None:
+            audio_proc.terminate()
+            audio_proc.kill()
+    except Exception:
+        pass
+    print("[Exited successfully]")
+    os._exit(0)
+
+signal.signal(signal.SIGINT, shutdown_handler)
+signal.signal(signal.SIGTERM, shutdown_handler)
+
+
+def spawn_arecord():
+    """Spawns or restarts the arecord capture process."""
+    cmd = [
+        "arecord",
+        "-D", ALSA_DEVICE,
+        "-f", "S16_LE",
+        "-r", str(NATIVE_RATE),
+        "-c", "1",
+        "-t", "raw",
+        "-q",
+        "--buffer-size=192000"  # Expanded hardware ring buffer to prevent EIO drops
+    ]
+    return subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        bufsize=CHUNK_BYTES * 20
+    )
+
 def main():
     global audio_proc
     threading.Thread(target=worker_transcribe, daemon=True).start()
