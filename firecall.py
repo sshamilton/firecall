@@ -1,3 +1,4 @@
+import re
 import collections
 import os
 import queue
@@ -96,11 +97,12 @@ else:
 
 def match_department(tones):
     if len(tones) >= 2:
-        for entry in ORANGE_COUNTY_TONES:
-            a_match = abs(tones[0] - entry["tone_a"]) / entry["tone_a"] < 0.02
-            b_match = abs(tones[1] - entry["tone_b"]) / entry["tone_b"] < 0.02
-            if a_match and b_match:
-                return entry["agency"]
+        for i in range(len(tones) - 1):
+            for entry in ORANGE_COUNTY_TONES:
+                a_match = abs(tones[i] - entry["tone_a"]) / entry["tone_a"] < 0.02
+                b_match = abs(tones[i+1] - entry["tone_b"]) / entry["tone_b"] < 0.02
+                if a_match and b_match:
+                    return entry["agency"]
         return f"Unknown Station ({tones[0]} Hz / {tones[1]} Hz)"
     elif len(tones) == 1:
         return f"Single Alert Tone ({tones[0]} Hz)"
@@ -159,13 +161,13 @@ def detect_alert_tones(audio_16k_bytes, sample_rate=16000):
                     consolidated_tones.append([freq, 1])
 
         # Must sustain for at least ~250ms (3 consecutive 100ms analysis hops)
-        sustained = [round(tone[0], 1) for tone in consolidated_tones if tone[1] >= 3]
+        sustained = [round(float(tone[0]), 1) for tone in consolidated_tones if tone[1] >= 3]
         
         # Deduplicate consecutive tones of the same frequency
         final_tones = []
         for t in sustained:
             if not final_tones or abs(t - final_tones[-1]) > 20.0:
-                final_tones.append(t)
+                final_tones.append(float(t))
 
         return final_tones
     except Exception as e:
@@ -176,6 +178,129 @@ def downsample_to_16k(audio_frames):
     raw_data = b"".join(audio_frames)
     samples = np.frombuffer(raw_data, dtype=np.int16)
     return samples[::DOWNSAMPLE_FACTOR].tobytes()
+
+# ==========================================
+#        DISPATCH CLASSIFICATION RULES
+# ==========================================
+KNOWN_AGENCIES = {
+    'goshen', 'middletown', 'washington heights', 'vails gate', 'port jervis',
+    'florida', 'bullville', 'warwick', 'goodwill', 'monroe', 'orange lake',
+    'mechanicstown', 'new hampton', 'south blooming grove', 'central woodbury',
+    'woodbury', 'walden', 'highland falls', 'cornwall', 'new windsor',
+    'greenville', 'silver lake', 'circleville', 'pocatello', 'chester',
+    'cronomer valley', 'washingtonville', 'coldenham', 'montgomery',
+    'salisbury mills', 'cuddebackville', 'west point', 'fort montgomery',
+    'maybrook', 'middle hope', 'slate hill', 'johnson', 'unionville',
+    'otisville', 'marlboro', 'minisink', 'pine bush', 'vales gate'
+}
+
+DISPATCH_KEYWORDS = {
+    # Emergency / incident types
+    'fire', 'alarm', 'smoke', 'odor', 'gas', 'leak', 'mva', 'accident',
+    'rollover', 'wires', 'burning', 'medical', 'ems', 'ambulance',
+    'rescue', 'structural', 'appliance', 'detector', 'activation',
+    'hazard', 'spill', 'co alarm', 'police', 'sirens', 'thruway',
+    # Operations & dispatch commands
+    'respond', 'responding', 'response', 'resound', 'resounded', 'resounding',
+    'department', 'fd', 'engine', 'ladder', 'truck', 'tanker', 'squad',
+    'mutual aid', 'automatic response', 'standby', 'cover', 'relocate',
+    'cancel', 'canceled', 'investigators', 'fire control', 'duty chief',
+    'chief', 'battalion', 'fire police', 'service', 'clear', 'time out',
+    'timed out', 'time', 'box', 'cross', 'county 911', 'dispatch',
+    'dispatched', 'last call', 'emergency',
+    # Road / location designators
+    'road', 'street', 'avenue', 'lane', 'drive', 'route', 'court', 'way',
+    'highway', 'trail', 'parkway', 'turnpike'
+}
+
+HALLUCINATIONS_EXACT = {
+    'the end', 'the end.', 'the end of the day',
+    'music', 'music.', 'outro', 'outro.',
+    'oh', 'oh.', 'gosh', 'gosh.', 'what', 'what?', 'h',
+    'thank you', 'thank you.', 'thank you very much', 'thank you very much.',
+    'subtitles', 'subtitles by', 'watching', 'thanks for watching',
+    'beep', 'phone ringing', 'bell rings', 'loud noise', 'punch', 'shs'
+}
+
+def clean_dispatch_text(text):
+    if not text:
+        return ""
+    # Strip bracketed/parenthesized/asterisk sound tags (e.g. *phone rings*, [music])
+    cleaned = re.sub(r'[*\[(][^*\])]*[*\])]', ' ', text)
+    # Strip non-ASCII / foreign script hallucinations (e.g. Chinese characters)
+    cleaned = re.sub(r'[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af\u0400-\u04ff]', ' ', cleaned)
+    # Strip leading punctuation/symbols
+    cleaned = re.sub(r'^[\s.\-_:,;]+', '', cleaned)
+    # Normalize whitespace
+    return re.sub(r'\s+', ' ', cleaned).strip()
+
+def is_real_fire_call(text, tones=None, agency_name=None, transmission_sec=None, speech_sec=None):
+    """
+    Evaluates whether decoded transmission is an authentic fire/EMS dispatch
+    versus a squelch break, noise, test, or one-off transmission.
+    """
+    has_known_agency = bool(
+        agency_name
+        and agency_name != 'Standard Voice / Patch'
+        and not agency_name.startswith('Unknown Station')
+    )
+    has_tones = bool(tones and len(tones) >= 2)
+
+    # 1. Transmission duration check (< 1.0s is a squelch break or blip, unless known agency tone matched)
+    if transmission_sec is not None and transmission_sec < 1.0 and not has_known_agency:
+        return False, f"transmission < 1.0s ({transmission_sec:.2f}s squelch break)"
+
+    if not text or not text.strip():
+        return False, "empty transcription"
+
+    cleaned = clean_dispatch_text(text)
+    lower_cleaned = cleaned.lower()
+
+    # 2. Check if alphanumeric content exists
+    if not re.search(r'[a-zA-Z0-9]', lower_cleaned):
+        return False, f"no alphanumeric content ({repr(text)})"
+
+    # 3. Exact noise / hallucination check
+    if lower_cleaned in HALLUCINATIONS_EXACT:
+        return False, f"hallucination/noise phrase ({repr(lower_cleaned)})"
+
+    words = re.findall(r'[a-zA-Z0-9]+', lower_cleaned)
+    if len(words) < 2:
+        return False, f"too few words ({len(words)}): {words}"
+
+    # 4. Repetition hallucination check (e.g. 'beep beep beep' or 'fire and the fire and the fire')
+    if len(words) >= 4:
+        unique_ratio = len(set(words)) / len(words)
+        if unique_ratio < 0.25:
+            return False, f"repetitive hallucination (ratio {unique_ratio:.2f})"
+
+    # 5. One-off radio test transmission check
+    if 'this is a test' in lower_cleaned or 'radio test' in lower_cleaned or 'testing 1' in lower_cleaned:
+        return False, "radio test transmission"
+
+    # Count keywords & agency hits
+    kw_hits = [kw for kw in DISPATCH_KEYWORDS if re.search(r'\b' + re.escape(kw) + r'\b', lower_cleaned)]
+    agency_hits = [ag for ag in KNOWN_AGENCIES if re.search(r'\b' + re.escape(ag) + r'\b', lower_cleaned)]
+    total_hits = len(kw_hits) + len(agency_hits)
+
+    # 6. Evaluation based on tone and keywords
+    if has_known_agency:
+        if total_hits >= 1 or len(words) >= 6:
+            return True, f"agency tone ({agency_name}) + hits={total_hits}"
+        return False, f"agency tone ({agency_name}) but no dispatch keywords: {lower_cleaned[:40]}"
+
+    if has_tones:
+        if total_hits >= 1 or len(words) >= 8:
+            return True, f"alert tones detected + hits={total_hits}"
+        return False, f"alert tones detected but no dispatch keywords: {lower_cleaned[:40]}"
+
+    # Standard Voice / Patch (no tones detected)
+    if total_hits >= 2:
+        return True, f"voice dispatch hits={total_hits} ({kw_hits[:2]} {agency_hits[:1]})"
+    if total_hits == 1 and len(words) >= 8:
+        return True, f"voice dispatch with 1 keyword and {len(words)} words"
+
+    return False, f"not a fire call (hits={total_hits}, words={len(words)}): {lower_cleaned[:40]}"
 
 # ==========================================
 #              INITIALIZATION
@@ -212,9 +337,18 @@ def worker_transcribe():
     counter = 0
     while running.is_set():
         try:
-            audio_frames = transcription_queue.get(timeout=1.0)
+            queue_item = transcription_queue.get(timeout=1.0)
         except queue.Empty:
             continue
+
+        if isinstance(queue_item, tuple):
+            audio_frames, meta = queue_item
+        elif isinstance(queue_item, dict):
+            audio_frames = queue_item.get("frames", [])
+            meta = queue_item
+        else:
+            audio_frames = queue_item
+            meta = {}
 
         counter += 1
         t_start = time.time()
@@ -276,14 +410,25 @@ def worker_transcribe():
             t_elapsed = round(time.time() - t_start, 2)
             print(f"[DEBUG Worker #{counter}] Transcription completed in {t_elapsed}s.")
 
-            hallucinations = ["thank you", "subtitles", "watching", "mbc"]
-            if text and not any(h in text.lower() for h in hallucinations):
-                print(f"\n[DECODED DISPATCH]: {text}\n")
+            transmission_sec = meta.get("transmission_sec")
+            speech_sec = meta.get("speech_sec")
+            is_fire_call, reason = is_real_fire_call(
+                text,
+                tones=tones_found,
+                agency_name=agency_name,
+                transmission_sec=transmission_sec,
+                speech_sec=speech_sec
+            )
+
+            if is_fire_call:
+                cleaned_text = clean_dispatch_text(text)
+                print(f"\n[DECODED DISPATCH]: {cleaned_text}\n")
                 audio_url = f"{AUDIO_BASE_URL}/{filename}"
                 payload = {
                     "agency": agency_name,
-                    "tones": tones_found,
-                    "message": text,
+                    "tones": [float(t) for t in tones_found],
+                    "message": cleaned_text,
+                    "raw_message": text,
                     "frequency": "154.205 MHz",
                     "channel": "Orange County Fire Paging",
                     "audio_file": str(save_path),
@@ -298,7 +443,7 @@ def worker_transcribe():
                 except requests.exceptions.RequestException as req_err:
                     print(f" -> Home Assistant webhook error/timeout: {req_err}")
             else:
-                print(f"[DEBUG Worker #{counter}] Squelch tail / artifact ignored: '{text}'")
+                print(f"[DEBUG Worker #{counter}] Squelch break / artifact ignored ({reason}): '{text}'")
 
         except Exception as e:
             print(f"\n[CRITICAL ERROR in worker_transcribe]: {e}")
@@ -360,6 +505,7 @@ recording = False
 voiced_frames = []
 last_speech_time = 0.0
 record_start_time = 0.0
+speech_frames_count = 0
 last_heartbeat = time.time()
 frame_counter = 0
 
@@ -375,7 +521,7 @@ while running.is_set():
             try:
                 audio_proc.terminate()
                 audio_proc.kill()
-                audo_proc.wait(timeout=2.0) 
+                audio_proc.wait(timeout=2.0) 
             except Exception:
                 pass
 
@@ -415,6 +561,7 @@ while running.is_set():
             recording = True
             record_start_time = current_time
             last_speech_time = current_time
+            speech_frames_count = 1
             print("\n[--> Squelch Open: Recording Dispatch...]")
             voiced_frames = list(pre_buffer)
             pre_buffer.clear()
@@ -422,18 +569,27 @@ while running.is_set():
         voiced_frames.append(boosted_frame)
         if is_speech:
             last_speech_time = current_time
+            speech_frames_count += 1
 
         silence_duration = current_time - last_speech_time
         total_duration = current_time - record_start_time
 
         if silence_duration >= SILENCE_TIMEOUT_SEC or total_duration >= MAX_DISPATCH_SEC:
             recording = False
-            print(f"\n[--< Squelch Closed: Queuing {round(total_duration, 1)}s of audio for processing...]")
-            if len(voiced_frames) > 33:
+            transmission_duration = max(0.0, last_speech_time - record_start_time)
+            speech_duration = speech_frames_count * (CHUNK_DURATION_MS / 1000.0)
+            print(f"\n[--< Squelch Closed: Queuing {round(total_duration, 1)}s of audio (active: {round(transmission_duration, 1)}s) for processing...]")
+            if len(voiced_frames) > 15:
                 try:
-                    transcription_queue.put_nowait(list(voiced_frames))
+                    meta = {
+                        "transmission_sec": transmission_duration,
+                        "speech_sec": speech_duration,
+                        "total_sec": total_duration
+                    }
+                    transcription_queue.put_nowait((list(voiced_frames), meta))
                 except queue.Full:
                     print("\n[WARNING]: Transcription queue is full! Dropping chunk.")
             voiced_frames = []
             pre_buffer.clear()
+            speech_frames_count = 0
 
