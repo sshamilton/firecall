@@ -11,6 +11,7 @@ Usage:
 """
 
 import sys
+import re
 import csv
 import sqlite3
 from pathlib import Path

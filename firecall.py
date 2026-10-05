@@ -242,11 +242,12 @@ if csv_path.exists():
 else:
     print(f"[WARN] {csv_path.name} not found! Starting with an empty tone directory.")
 
-def match_department(tones, tolerance=0.022):
+def match_department(tones, tolerance=0.020):
     """
     Matches detected audio tones against the QCII directory.
     Detects single-department calls, pager + siren sequences, and multi-agency
     mutual aid calls with multiple tone pairs (e.g. Agency A followed by Agency B).
+    Picks the closest matching agency (lowest relative frequency error) within tolerance.
     Preserves and reports any unknown tone pairs as 'Unknown Station (fA Hz / fB Hz)'.
     Returns a combined string of matched agencies separated by ' / '.
     """
@@ -256,30 +257,34 @@ def match_department(tones, tolerance=0.022):
     matched_agencies = []
     i = 0
     while i < len(tones) - 1:
-        # 1. Check if (tones[i], tones[i+1]) matches a known agency
-        matched_known = False
+        # 1. Check if (tones[i], tones[i+1]) matches a known agency (lowest error wins)
+        best_candidate = None
+        best_error = float("inf")
         for entry in ORANGE_COUNTY_TONES:
-            a_match = abs(tones[i] - entry["tone_a"]) / entry["tone_a"] < tolerance
-            b_match = abs(tones[i+1] - entry["tone_b"]) / entry["tone_b"] < tolerance
-            if a_match and b_match:
-                ag = entry["agency"]
-                if ag not in matched_agencies:
-                    matched_agencies.append(ag)
-                i += 2
-                matched_known = True
-                break
-        if matched_known:
+            a_err = abs(tones[i] - entry["tone_a"]) / entry["tone_a"]
+            b_err = abs(tones[i+1] - entry["tone_b"]) / entry["tone_b"]
+            if a_err < tolerance and b_err < tolerance:
+                total_err = a_err + b_err
+                if total_err < best_error:
+                    best_error = total_err
+                    best_candidate = entry
+
+        if best_candidate:
+            ag = best_candidate["agency"]
+            if ag not in matched_agencies:
+                matched_agencies.append(ag)
+            i += 2
             continue
 
         # 2. Not a known agency. Lookahead: does (tones[i+1], tones[i+2]) match a known agency?
         if i + 2 < len(tones):
-            lookahead_match = False
+            lookahead_candidate = None
             for entry in ORANGE_COUNTY_TONES:
                 if abs(tones[i+1] - entry["tone_a"]) / entry["tone_a"] < tolerance and \
                    abs(tones[i+2] - entry["tone_b"]) / entry["tone_b"] < tolerance:
-                    lookahead_match = True
+                    lookahead_candidate = entry
                     break
-            if lookahead_match:
+            if lookahead_candidate:
                 # tones[i] was an isolated blip/tone, advance to the known match
                 i += 1
                 continue
@@ -382,7 +387,9 @@ KNOWN_AGENCIES = {
     'maybrook', 'middle hope', 'slate hill', 'johnson', 'unionville',
     'otisville', 'marlboro', 'minisink', 'pine bush', 'vales gate',
     'winona lake', 'campbell hall', 'tuxedo', 'greenwood lake', 'pine island',
-    'sparrow bush', 'howells', 'harriman', 'lakeside', 'huguenot'
+    'sparrow bush', 'howells', 'harriman', 'lakeside', 'huguenot',
+    'kiryas joel', 'curious toll', 'currie strohl', 'carrier stoll', 'stewart',
+    'air guard'
 }
 
 DISPATCH_KEYWORDS = {

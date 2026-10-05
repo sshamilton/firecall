@@ -1,164 +1,278 @@
 # Orange County, NY Quick-Call II Tone Directory (154.205 MHz)
 # Format: Agency Name, Tone A (Hz), Tone B (Hz)
 
-# Goshen
-Goshen FD,810,1430
-Goshen FD,770,560
-
-# Middletown
-Middletown,1430,1035
-Middletown,610,835
-
-# Washington Heights
-Washington Heights,1925,2085
-
-# Vails Gate
-Vails Gate,790,955
-Vails Gate Fire Chief,790,880
-
-# Port Jervis
-Port Jervis,1035,1110
-Port Jervis FD,650,950
-
-# Florida
-Florida,590,800
-
 # Bullville
 Bullville,1520,1745
-
-# Warwick
-Warwick,730,1285
-Warwick,955,850
-
-# Goodwill
-Goodwill Fire Department,790,1080
-
-# Monroe
-Monroe,1600,1345
-
-# Orange Lake
-Orange Lake FD,2260,1180
-
-# Mechanicstown
-Mechanicstown FD,1950,1405
-
-# New Hampton
-New Hampton FD,1925,810
-
-# South Blooming Grove
-South Blooming Grove,1530,1430
-
-# Central Woodbury
-Central Woodbury FD,645,880
-
-# Walden
-Walden,2260,1345
-
-# Highland Falls
-Highland Falls,880,1230
-
-# Cornwall
-Cornwall,1670,1035
-
-# New Windsor
-New Windsor,705,525
-
-# Greenville
-Greenville FD,880,645
-
-# Silver Lake
-Silver Lake FD,1925,2260
-Silver Lake FD,860,700
-
-# Circleville
-Circleville,1925,1110
-
-# Pocatello
-Pocatello FD-Middletown,1925,1670
-
-# Chester
-Chester FD,1925,715
-Chester FD,667.5,532.5
-
-# Cronomer Valley
-Cronomer Valley FD-Newburgh,1035,1600
-Cronomer Valley Duty Chief,1035,1745
-
-# Washingtonville
-Washingtonville FD,670,1080
-
-# Coldenham
-Coldenham FD-Walden,2690,1230
-
-# Montgomery
-Montgomery FD,1745,1285
-Montgomery FD,862.5,607.5
-
-# Salisbury Mills
-Salisbury Mills,1285,730
-
-# Cuddebackville
-Cuddebackville,645,1285
-
-# Maybrook
-Maybrook FD,1345,1080
-Maybrook FD,742.5,862.5
-
-# Winona Lake
-Winona Lake FD,2260,1035
-
-# Pine Bush
-Pine Bush FD,2575,1130
+Bullville,532.5,697.5
+Bullville Duty Chief,1530,1036
 
 # Campbell Hall
 Campbell Hall FD,525,955
 Campbell Hall FD,907.5,817.5
+Campbell Hall Duty Chief,524.6,1082
 
-# Johnson
-Johnson FD,1180,950
+# Central Woodbury
+Central Woodbury FD,645,880
+Central Woodbury FD,712.5,922.5
+Central Woodbury Duty Chief,645.7,954
 
-# Unionville
-Unionville FD,1230,1345
+# Chester
+Chester FD,1925,715
+Chester FD,667.5,532.5
+Chester Duty Chief,1925,1035
 
-# Slate Hill
-Slate Hill FD,855,1355
-Slate Hill FD,1500,855
+# Circleville
+Circleville,1925,1110
+Circleville,832.5,652.5
+Circleville Duty Chief,1930.2,1326
+
+# Coldenham
+Coldenham FD-Walden,2690,1230
+Coldenham FD-Walden,607.5,517.5
+Coldenham Duty Chief,2688,1130
+
+# Cornwall
+Cornwall,1670,1035
+Cornwall,667.5,562.5
+Cornwall Mountainville Engine Co,922.5,952.5
+Cornwall Duty Chief,1669,1130
 
 # Cornwall-on-Hudson
 Cornwall-on-Hudson FD,950,1230
+Cornwall-on-Hudson FD,697.5,877.5
+Cornwall-on-Hudson Duty Chief,950,1130
+
+# Cronomer Valley
+Cronomer Valley FD-Newburgh,1035,1600
+Cronomer Valley FD-Newburgh,622.5,952.5
+Cronomer Valley Duty Chief,1035,1745
+
+# Cuddebackville
+Cuddebackville,645,1285
+Cuddebackville,772.5,712.5
+Cuddebackville Duty Chief,643,1430
+
+# Florida
+Florida,590,800
+Florida,652.5,832.5
+Florida Ambulance,589.7,732
+Florida Duty Chief,800,2575
 
 # Fort Montgomery
 Fort Montgomery FD,615,1230
+Fort Montgomery FD,712.5,952.5
+Fort Montgomery Duty Chief,615.8,1598
+
+# Goodwill
+Goodwill Fire Department,790,1080
+Goodwill Fire Department,862.5,532.5
+Goodwill Duty Chief,799,1232
+
+# Goshen
+Goshen FD,810,1430
+Goshen FD,770,560
+Goshen Duty Chief,810.2,1669
+
+# Greenville
+Greenville FD,880,645
+Greenville FD,532.5,622.5
+Greenville Duty Chief,881,707
+
+# Greenwood Lake
+Greenwood Lake FD,855,1435
+Greenwood Lake FD,622.5,697.5
+Greenwood Lake Duty Chief,855.5,954
+
+# Harriman
+Harriman FD,1122,525
+Harriman FD,772.5,907.5
+Harriman Duty Chief,1122.5,646
+
+# Highland Falls
+Highland Falls,880,1230
+Highland Falls,607.5,922.5
+Highland Falls Duty Chief,1122.5,789
+
+# Howells
+Howells FD,1925,2470
+Howells FD,922.5,607.5
+Howells Duty Chief,1930.2,1201
+
+# Huguenot
+Huguenot FD,1180,800
+Huguenot FD,517.5,832.5
+Huguenot Duty Chief,1180,855
+
+# Johnson
+Johnson FD,1180,950
+Johnson FD,652.5,922.5
+Johnson Duty Chief,1180,1036
+
+# Kiryas Joel
+Kiryas Joel FD,860,820
+
+# Lakeside
+Lakeside FD,1345,645
+Lakeside FD,877.5,607.5
+Lakeside Duty Chief,1344,716
+
+# Maybrook
+Maybrook FD,1345,1080
+Maybrook FD,742.5,862.5
+Maybrook Duty Chief,1344,1232
+
+# Mechanicstown
+Mechanicstown FD,1950,1405
+Mechanicstown Duty Chief,1985,799
+
+# Middle Hope
+Middle Hope FD,992,1345
+Middle Hope FD,975,712.5
+Middle Hope Duty Chief,992,1430
+
+# Middletown
+Middletown,1430,1035
+Middletown,610,835
+Middletown Duty Chief,1433.4,1180
+
+# Monroe
+Monroe,1600,1345
+Monroe,877.5,517.5
+Monroe Duty Chief,1598,1430
+
+# Montgomery
+Montgomery FD,1745,1285
+Montgomery FD,862.5,607.5
+Montgomery Duty Chief,1743,1430
+
+# New Hampton
+New Hampton FD,1925,810
+New Hampton FD,577.5,832.5
+New Hampton Duty Chief,1930.2,1743
+
+# New Windsor
+New Windsor,705,525
+New Windsor,862.5,667.5
+New Windsor Duty Chief,707.3,646
+
+# Orange Lake
+Orange Lake FD,2260,1180
+Orange Lake FD,2688,584.8
+Orange Lake FD,667.5,862.5
+Orange Lake Duty Chief,2260,1232
 
 # Otisville
 Otisville FD,800,1285
 Otisville FD,560,880
 Otisville Duty Chief,800,1345
 
-# Huguenot
-Huguenot FD,1180,800
-Huguenot Duty Chief,1180,855
-
-# Tuxedo
-Tuxedo FD,730,977
-
-# Greenwood Lake
-Greenwood Lake FD,855,1435
+# Pine Bush
+Pine Bush FD,2575,1130
+Pine Bush FD,772.5,667.5
+Pine Bush Duty Chief,2575,1036
 
 # Pine Island
 Pine Island FD,800,1745
+Pine Island FD,967.5,562.5
+Pine Island Duty Chief,799,2575
+
+# Pocatello
+Pocatello FD-Middletown,1925,1670
+Pocatello FD-Middletown,577.5,907.5
+Pocatello Duty Chief,1930.2,1082
+
+# Port Jervis
+Port Jervis FD,1035,1110
+Port Jervis FD,650,950
+Port Jervis FD,577.5,922.5
+Port Jervis Duty Chief,1034.7,1232
+
+# Salisbury Mills
+Salisbury Mills,1285,730
+Salisbury Mills,667.5,877.5
+Salisbury Mills Duty Chief,1287,707
+
+# Silver Lake
+Silver Lake FD,1925,2260
+Silver Lake FD,860,700
+Silver Lake FD,907.5,652.5
+Silver Lake Car 5,1925,1600
+Silver Lake Duty Chief,1930.2,1598
+
+# Slate Hill
+Slate Hill FD,855,1355
+Slate Hill FD,1500,855
+Slate Hill FD,907.5,652.5
+Slate Hill Duty Chief,855.5,1287
+
+# South Blooming Grove
+South Blooming Grove,1530,1430
+South Blooming Grove,577.5,772.5
+South Blooming Grove Duty Chief,1555.2,1232
 
 # Sparrow Bush
 Sparrow Bush FD,870,1745
+Sparrow Bush FD,607.5,697.5
+Sparrow Bush Duty Chief,871,2575
 
-# Middle Hope
-Middle Hope FD,992,1345
+# Stewart Air Guard
+Stewart Air Guard FD,530,785
 
-# Howells
-Howells FD,1925,2470
+# Tuxedo
+Tuxedo FD,730,977
+Tuxedo FD,1122.5,600
+Tuxedo Company 1,712.5,667.5
+Tuxedo Duty Chief,732,1082
 
-# Harriman
-Harriman FD,1122,525
+# Unionville
+Unionville FD,1230,1345
+Unionville FD,652.5,517.5
+Unionville Duty Chief,1232,1598
 
-# Lakeside
-Lakeside FD,1345,645
+# Vails Gate
+Vails Gate,790,955
+Vails Gate,862.5,517.5
+Vails Gate Fire Chief,790,880
+
+# Walden
+Walden,2260,1345
+Walden,967.5,832.5
+Walden Duty Chief,2260,1598
+
+# Warwick
+Warwick,730,1285
+Warwick,955,850
+Warwick,712.5,832.5
+Warwick Duty Chief,732,1669
+
+# Washington Heights
+Washington Heights,1925,2085
+Washington Heights,517.5,922.5
+Washington Heights Duty Chief,1930.2,1430
+
+# Washingtonville
+Washingtonville FD,670,1080
+Washingtonville FD,532.5,607.5
+Washingtonville Duty Chief,672,1180
+
+# West Point
+West Point FD,622.5,907.5
+
+# Winona Lake
+Winona Lake FD,2260,1035
+Winona Lake FD,907.5,832.5
+Winona Lake Duty Chief,2260,832.5
+
+# County Fire Coordinators & Investigators
+County Fire Coordinator Car 36-1,650,680
+Deputy Fire Coordinator Car 36-3,650,435
+Deputy Fire Coordinator Car 36-6,590,535
+Deputy Fire Coordinator Car 36-10,682.5,770
+Deputy Fire Coordinator Car 36-12,650,607.5
+Deputy Fire Coordinator Car 36-13,650,800
+Deputy Fire Coordinator Car 36-15,650,565
+Deputy Fire Coordinator Car 36-16,655,860
+Deputy Fire Coordinator Car 36-17,650,770
+Fire Investigator Car 36-102,590,875
+Fire Investigator Car 36-104,1670,1180
+Orange County All-Call,877.5,907.5
