@@ -3,6 +3,9 @@
 **Firecall** is an automated fire and EMS dispatch monitoring system designed for Orange County, NY (154.205 MHz). It captures live RF audio from a Kenwood TM-D750 radio (via ALSA), detects Motorola Quick-Call II (QCII) paging alert tones, transcribes the voice dispatches using a high-performance GPU-accelerated Whisper model, verifies authentic emergency calls, records everything into a local SQLite database, and pushes real-time notification alerts with audio playback links to Home Assistant.
 
 ---
+## Screenshot
+
+<img width="1963" height="1179" alt="image" src="https://github.com/user-attachments/assets/95e6a85e-6cb7-4e67-96c7-c37ab406b0a3" />
 
 ## Features
 
