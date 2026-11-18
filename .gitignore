@@ -36,3 +36,13 @@ env/
 
 # Scratch / test files
 tester*.py
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+
+# Frontend build & dependencies
+web/node_modules/
+web/dist/
+

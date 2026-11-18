@@ -93,6 +93,11 @@ def init_db():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_dispatches_agency ON dispatches(agency)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_dispatches_timestamp ON dispatches(timestamp)")
         conn.commit()
+        try:
+            from geocoder import ensure_schema
+            ensure_schema(conn)
+        except Exception as e:
+            print(f"[WARN DB] Could not initialize geocoder schema: {e}")
 
 def log_dispatch_to_db(agency, tones, message, raw_message, channel, frequency, audio_file, audio_url, total_duration_sec, active_transmission_sec, speech_sec, timestamp=None, agencies=None):
     try:
@@ -109,32 +114,49 @@ def log_dispatch_to_db(agency, tones, message, raw_message, channel, frequency, 
                 agencies_list = []
             agencies_json = json.dumps(agencies_list)
 
+            geo = {}
+            try:
+                from geocoder import process_dispatch
+                geo = process_dispatch(message=message or "", agency=agency or "", mode="auto", conn=conn, rate_limit_sec=0.2)
+            except Exception as geo_err:
+                print(f"[WARN GEOCODER] Live geocoding fallback error: {geo_err}")
+
             if timestamp:
                 cursor.execute("""
                     INSERT INTO dispatches (
                         timestamp, agency, tones, message, raw_message,
                         channel, frequency, audio_file, audio_url,
-                        total_duration_sec, active_transmission_sec, speech_sec, agencies
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        total_duration_sec, active_transmission_sec, speech_sec, agencies,
+                        incident_type, extracted_address, municipality, cross_streets,
+                        latitude, longitude, location_precision, parse_method
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     timestamp, agency, tones_json, message, raw_message,
                     channel, frequency, str(audio_file), audio_url,
-                    total_duration_sec, active_transmission_sec, speech_sec, agencies_json
+                    total_duration_sec, active_transmission_sec, speech_sec, agencies_json,
+                    geo.get("incident_type"), geo.get("extracted_address"), geo.get("municipality"),
+                    geo.get("cross_streets"), geo.get("latitude"), geo.get("longitude"),
+                    geo.get("location_precision"), geo.get("parse_method")
                 ))
             else:
                 cursor.execute("""
                     INSERT INTO dispatches (
                         agency, tones, message, raw_message,
                         channel, frequency, audio_file, audio_url,
-                        total_duration_sec, active_transmission_sec, speech_sec, agencies
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        total_duration_sec, active_transmission_sec, speech_sec, agencies,
+                        incident_type, extracted_address, municipality, cross_streets,
+                        latitude, longitude, location_precision, parse_method
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     agency, tones_json, message, raw_message,
                     channel, frequency, str(audio_file), audio_url,
-                    total_duration_sec, active_transmission_sec, speech_sec, agencies_json
+                    total_duration_sec, active_transmission_sec, speech_sec, agencies_json,
+                    geo.get("incident_type"), geo.get("extracted_address"), geo.get("municipality"),
+                    geo.get("cross_streets"), geo.get("latitude"), geo.get("longitude"),
+                    geo.get("location_precision"), geo.get("parse_method")
                 ))
             conn.commit()
-            print(f"[DB] Logged dispatch #{cursor.lastrowid} ({agency}) to {DB_PATH.name}")
+            print(f"[DB] Logged dispatch #{cursor.lastrowid} ({agency}) [{geo.get('incident_type', 'Other')} @ {geo.get('extracted_address') or geo.get('municipality')}] to {DB_PATH.name}")
     except Exception as e:
         print(f"[ERROR DB]: Failed to insert dispatch into sqlite: {e}")
 

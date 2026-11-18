@@ -56,13 +56,19 @@
 ## File Structure
 
 ```
-├── firecall.py       # Main service: audio capture, tone detection, STT worker, DB logging
-├── query_db.py       # CLI reporting, search, and export tool for firecall.db
-├── backfill_db.py    # One-off backfill tool to import historical logs into SQLite
-├── tones.csv         # Quick-Call II frequency table (64+ agencies, Tone A Hz, Tone B Hz)
-├── firecall.db       # SQLite database (auto-created, gitignored)
-├── recordings/       # Timestamped WAV recordings (auto-managed, 7-day retention)
-└── README.md         # Documentation
+├── firecall.py           # Main service: audio capture, tone detection, STT worker, live geocoding & DB logging
+├── geocoder.py           # Hybrid LLM + Regex address/incident extractor & OpenStreetMap (Nominatim) geocoder
+├── backfill_locations.py # CLI utility to backfill/upgrade historical dispatches with LLM & Nominatim coordinates
+├── api.py                # FastAPI server serving the REST API, audio streams, and React web map dashboard
+├── stations.json         # Curated coordinate & municipality directory for Orange County fire departments
+├── web/                  # React + Vite + TypeScript + React-Leaflet (OpenStreetMap) web dashboard
+├── query_db.py           # CLI reporting, search, and export tool for firecall.db
+├── backfill_db.py        # One-off backfill tool to import historical logs into SQLite
+├── tones.csv             # Quick-Call II frequency table (64+ agencies, Tone A Hz, Tone B Hz)
+├── .env.example          # Environment variable template for LLM and map tile API keys (.env is gitignored)
+├── firecall.db           # SQLite database (auto-created, gitignored)
+├── recordings/           # Timestamped WAV recordings (auto-managed, 7-day retention)
+└── README.md             # Documentation
 ```
 
 ---
@@ -87,6 +93,39 @@ Dispatches are stored in the `dispatches` table:
 | `total_duration_sec` | `REAL` | Total recorded audio duration (seconds) |
 | `active_transmission_sec`| `REAL` | Active speech / carrier duration before silence timeout |
 | `speech_sec` | `REAL` | Accumulated voice-active frames duration |
+| `incident_type` | `TEXT` | Classified category (`Structure Fire`, `MVA`, `Automatic Alarm`, `Gas / CO / Hazmat`, `Brush / Outside Fire`, `Medical / EMS`, `Mutual Aid / Standby`, `Other`) |
+| `extracted_address` | `TEXT` | Parsed street address, highway, or intersection |
+| `municipality` | `TEXT` | Resolved Orange County town, city, or village |
+| `cross_streets` | `TEXT` | Parsed cross streets |
+| `latitude` | `REAL` | Geocoded WGS84 latitude |
+| `longitude` | `REAL` | Geocoded WGS84 longitude |
+| `location_precision` | `TEXT` | `'exact'`, `'approximate'`, or `'station_fallback'` |
+| `parse_method` | `TEXT` | `'llm'`, `'regex'`, `'regex_fast'`, or `'manual'` |
+
+---
+
+## Web Map Dashboard (React + OpenStreetMap + FastAPI)
+
+Firecall includes a responsive, mobile-friendly CAD map view built with React, Tailwind CSS, `React-Leaflet`, and FastAPI:
+
+- **Hybrid LLM-First Address Extraction**: Uses an OpenAI-compatible LLM endpoint (configured in `.env`) to extract street addresses, intersections, cross streets, municipalities, and incident types from Whisper transcripts, with automatic fallback to a normalized Regex parser.
+- **Bounded OpenStreetMap Geocoding**: Queries Nominatim strictly within Orange County, NY (`geocode_cache` table prevents duplicate lookups) and falls back to the responding Fire Department's station coordinates (`stations.json`) when no street address is spoken.
+- **Interactive Pins & Audio Playback**: Color-coded incident pins, marker clustering, toggleable Fire Department Stations overlay, synchronized call feed, live auto-refresh, and direct `.wav` audio playback inside each pin popup.
+
+### Running the Web Map Server
+```bash
+# 1. Copy .env.example to .env and configure your LLM endpoint / optional CARTO tile key
+cp .env.example .env
+
+# 2. (Optional) Backfill / upgrade historical dispatches with LLM + OpenStreetMap geocoding
+/home/stephen/venv/bin/python backfill_locations.py --upgrade-llm 200
+
+# 3. Build the React frontend bundle (served automatically by FastAPI from web/dist)
+cd web && npm install && npm run build && cd ..
+
+# 4. Start the FastAPI server on port 8086
+/home/stephen/venv/bin/uvicorn api:app --host 0.0.0.0 --port 8086
+```
 
 ---
 
@@ -157,7 +196,7 @@ kill -SIGINT $(pgrep -f firecall.py)
 
 ## Configuration
 
-Settings can be customized near the top of `firecall.py`:
+Settings can be customized near the top of `firecall.py` and in `.env`:
 
 ```python
 HA_URL = "http://192.168.1.95:8123/api/webhook/ham_radio_message"

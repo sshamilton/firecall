@@ -1,0 +1,434 @@
+{
+  "Bullville": {
+    "name": "Bullville Fire Department",
+    "municipality": "Bullville",
+    "town": "Crawford",
+    "lat": 41.5523,
+    "lon": -74.3490,
+    "address": "2891 Route 17K, Bullville, NY"
+  },
+  "Campbell Hall FD": {
+    "name": "Campbell Hall Fire Department",
+    "municipality": "Campbell Hall",
+    "town": "Hamptonburgh",
+    "lat": 41.4545,
+    "lon": -74.2627,
+    "address": "1615 Route 207, Campbell Hall, NY"
+  },
+  "Central Woodbury FD": {
+    "name": "Woodbury Fire Department (Central Valley)",
+    "municipality": "Central Valley",
+    "town": "Woodbury",
+    "lat": 41.3259,
+    "lon": -74.1221,
+    "address": "278 Route 32, Central Valley, NY"
+  },
+  "Chester FD": {
+    "name": "Chester Fire Department",
+    "municipality": "Chester",
+    "town": "Chester",
+    "lat": 41.3562,
+    "lon": -74.2768,
+    "address": "87 Main St, Chester, NY"
+  },
+  "Circleville": {
+    "name": "Circleville Fire Department",
+    "municipality": "Circleville",
+    "town": "Wallkill",
+    "lat": 41.5315,
+    "lon": -74.3765,
+    "address": "2147 Route 302, Circleville, NY"
+  },
+  "Coldenham FD-Walden": {
+    "name": "Coldenham Fire Department",
+    "municipality": "Montgomery",
+    "town": "Montgomery",
+    "lat": 41.5256,
+    "lon": -74.1292,
+    "address": "511 Coldenham Rd, Walden, NY"
+  },
+  "Cornwall": {
+    "name": "Cornwall Fire Department",
+    "municipality": "Cornwall",
+    "town": "Cornwall",
+    "lat": 41.4348,
+    "lon": -74.0357,
+    "address": "1 Quaker Ave, Cornwall, NY"
+  },
+  "Cornwall Mountainville Engine Co": {
+    "name": "Mountainville Engine Co. (Cornwall FD)",
+    "municipality": "Mountainville",
+    "town": "Cornwall",
+    "lat": 41.4063,
+    "lon": -74.0695,
+    "address": "1355 Route 32, Mountainville, NY"
+  },
+  "Cornwall-on-Hudson FD": {
+    "name": "Cornwall-on-Hudson Fire Department",
+    "municipality": "Cornwall-on-Hudson",
+    "town": "Cornwall",
+    "lat": 41.4437,
+    "lon": -74.0138,
+    "address": "307 Hudson St, Cornwall-on-Hudson, NY"
+  },
+  "Cronomer Valley FD-Newburgh": {
+    "name": "Cronomer Valley Fire Department",
+    "municipality": "Newburgh",
+    "town": "Newburgh",
+    "lat": 41.5425,
+    "lon": -74.0642,
+    "address": "296 North Plank Rd, Newburgh, NY"
+  },
+  "Cuddebackville": {
+    "name": "Cuddebackville Fire Department",
+    "municipality": "Cuddebackville",
+    "town": "Deerpark",
+    "lat": 41.4718,
+    "lon": -74.6022,
+    "address": "278 Oakland Valley Rd, Cuddebackville, NY"
+  },
+  "Florida": {
+    "name": "Florida Fire Department",
+    "municipality": "Florida",
+    "town": "Warwick",
+    "lat": 41.3318,
+    "lon": -74.3568,
+    "address": "19 South Main St, Florida, NY"
+  },
+  "Fort Montgomery FD": {
+    "name": "Fort Montgomery Fire Department",
+    "municipality": "Fort Montgomery",
+    "town": "Highlands",
+    "lat": 41.3364,
+    "lon": -73.9845,
+    "address": "865 Route 9W, Fort Montgomery, NY"
+  },
+  "Goodwill Fire Department": {
+    "name": "Goodwill Fire Department",
+    "municipality": "Newburgh",
+    "town": "Newburgh",
+    "lat": 41.5032,
+    "lon": -74.0805,
+    "address": "1 South Plank Rd, Newburgh, NY"
+  },
+  "Goshen FD": {
+    "name": "Goshen Fire Department",
+    "municipality": "Goshen",
+    "town": "Goshen",
+    "lat": 41.4023,
+    "lon": -74.3243,
+    "address": "10 Dikeman Dr, Goshen, NY"
+  },
+  "Greenville FD": {
+    "name": "Greenville Fire Department",
+    "municipality": "Port Jervis",
+    "town": "Greenville",
+    "lat": 41.3522,
+    "lon": -74.5955,
+    "address": "1598 US Route 6, Port Jervis, NY"
+  },
+  "Greenwood Lake FD": {
+    "name": "Greenwood Lake Fire Department",
+    "municipality": "Greenwood Lake",
+    "town": "Warwick",
+    "lat": 41.2219,
+    "lon": -74.2905,
+    "address": "17 Mountain Lakes Ln, Greenwood Lake, NY"
+  },
+  "Harriman FD": {
+    "name": "Harriman Engine Company No. 1",
+    "municipality": "Harriman",
+    "town": "Monroe",
+    "lat": 41.3075,
+    "lon": -74.1458,
+    "address": "21 South Main St, Harriman, NY"
+  },
+  "Highland Falls": {
+    "name": "Highland Falls Fire Department",
+    "municipality": "Highland Falls",
+    "town": "Highlands",
+    "lat": 41.3705,
+    "lon": -73.9662,
+    "address": "9 Mountain Ave, Highland Falls, NY"
+  },
+  "Howells FD": {
+    "name": "Howells Fire Department",
+    "municipality": "Howells",
+    "town": "Mount Hope",
+    "lat": 41.4828,
+    "lon": -74.4682,
+    "address": "24 Elm St, Howells, NY"
+  },
+  "Huguenot FD": {
+    "name": "Huguenot Fire Company",
+    "municipality": "Huguenot",
+    "town": "Deerpark",
+    "lat": 41.4225,
+    "lon": -74.6368,
+    "address": "431 Route 209, Huguenot, NY"
+  },
+  "Johnson FD": {
+    "name": "Johnson Fire Department",
+    "municipality": "Johnson",
+    "town": "Wawayanda",
+    "lat": 41.3585,
+    "lon": -74.4962,
+    "address": "3120 Route 284, Johnson, NY"
+  },
+  "Kiryas Joel FD": {
+    "name": "Kiryas Joel Fire Department",
+    "municipality": "Kiryas Joel",
+    "town": "Palm Tree",
+    "lat": 41.3398,
+    "lon": -74.1672,
+    "address": "500 Forest Rd, Monroe, NY"
+  },
+  "Lakeside FD": {
+    "name": "Lakeside Fire & Rescue (Monroe)",
+    "municipality": "Monroe",
+    "town": "Monroe",
+    "lat": 41.3125,
+    "lon": -74.1985,
+    "address": "823 Lakes Rd, Monroe, NY"
+  },
+  "Maybrook FD": {
+    "name": "Maybrook Engine Company No. 1",
+    "municipality": "Maybrook",
+    "town": "Montgomery",
+    "lat": 41.4882,
+    "lon": -74.2125,
+    "address": "205 Wallace Ave, Maybrook, NY"
+  },
+  "Mechanicstown FD": {
+    "name": "Mechanicstown Fire Department",
+    "municipality": "Middletown",
+    "town": "Wallkill",
+    "lat": 41.4525,
+    "lon": -74.3845,
+    "address": "2058 Route 302, Middletown, NY"
+  },
+  "Middle Hope FD": {
+    "name": "Middle Hope Fire Department",
+    "municipality": "Newburgh",
+    "town": "Newburgh",
+    "lat": 41.5592,
+    "lon": -74.0095,
+    "address": "5172 Route 9W, Newburgh, NY"
+  },
+  "Middletown": {
+    "name": "Middletown Fire Department",
+    "municipality": "Middletown",
+    "town": "Middletown",
+    "lat": 41.4459,
+    "lon": -74.4229,
+    "address": "81 East Main St, Middletown, NY"
+  },
+  "Monroe": {
+    "name": "Monroe Fire District",
+    "municipality": "Monroe",
+    "town": "Monroe",
+    "lat": 41.3228,
+    "lon": -74.1872,
+    "address": "406 North Main St, Monroe, NY"
+  },
+  "Montgomery FD": {
+    "name": "Montgomery Fire Department",
+    "municipality": "Montgomery",
+    "town": "Montgomery",
+    "lat": 41.5275,
+    "lon": -74.2368,
+    "address": "136 Ward St, Montgomery, NY"
+  },
+  "New Hampton FD": {
+    "name": "New Hampton Fire Company",
+    "municipality": "New Hampton",
+    "town": "Wawayanda",
+    "lat": 41.3948,
+    "lon": -74.3975,
+    "address": "5029 Route 17M, New Hampton, NY"
+  },
+  "New Windsor": {
+    "name": "New Windsor Fire Department (Quassaick Bridge)",
+    "municipality": "New Windsor",
+    "town": "New Windsor",
+    "lat": 41.4768,
+    "lon": -74.0235,
+    "address": "275 Walsh Ave, New Windsor, NY"
+  },
+  "Orange Lake FD": {
+    "name": "Dan Leghorn Engine Co. (Orange Lake FD)",
+    "municipality": "Newburgh",
+    "town": "Newburgh",
+    "lat": 41.5355,
+    "lon": -74.0958,
+    "address": "426 South Plank Rd, Newburgh, NY"
+  },
+  "Otisville FD": {
+    "name": "Otisville Fire Department",
+    "municipality": "Otisville",
+    "town": "Mount Hope",
+    "lat": 41.4722,
+    "lon": -74.5385,
+    "address": "60 State St, Otisville, NY"
+  },
+  "Pine Bush FD": {
+    "name": "Pine Bush Fire Department",
+    "municipality": "Pine Bush",
+    "town": "Crawford",
+    "lat": 41.6085,
+    "lon": -74.2988,
+    "address": "2405 Route 52, Pine Bush, NY"
+  },
+  "Pine Island FD": {
+    "name": "Pine Island Fire Department",
+    "municipality": "Pine Island",
+    "town": "Warwick",
+    "lat": 41.3005,
+    "lon": -74.4628,
+    "address": "672 County Route 1, Pine Island, NY"
+  },
+  "Pocatello FD-Middletown": {
+    "name": "Pocatello Fire District",
+    "municipality": "Middletown",
+    "town": "Wallkill",
+    "lat": 41.4512,
+    "lon": -74.4582,
+    "address": "597 Silver Lake-Scotchtown Rd, Middletown, NY"
+  },
+  "Port Jervis FD": {
+    "name": "Port Jervis Fire Department",
+    "municipality": "Port Jervis",
+    "town": "Port Jervis",
+    "lat": 41.3752,
+    "lon": -74.6928,
+    "address": "8-10 Orange St, Port Jervis, NY"
+  },
+  "Salisbury Mills": {
+    "name": "Salisbury Mills Fire Department",
+    "municipality": "Salisbury Mills",
+    "town": "Cornwall",
+    "lat": 41.4342,
+    "lon": -74.1065,
+    "address": "2128 Route 94, Salisbury Mills, NY"
+  },
+  "Silver Lake FD": {
+    "name": "Silver Lake Fire Department",
+    "municipality": "Middletown",
+    "town": "Wallkill",
+    "lat": 41.4625,
+    "lon": -74.3915,
+    "address": "2642 Route 302, Middletown, NY"
+  },
+  "Slate Hill FD": {
+    "name": "Slate Hill Fire Department",
+    "municipality": "Slate Hill",
+    "town": "Wawayanda",
+    "lat": 41.3845,
+    "lon": -74.4675,
+    "address": "1957 Route 6, Slate Hill, NY"
+  },
+  "South Blooming Grove": {
+    "name": "South Blooming Grove Fire District",
+    "municipality": "South Blooming Grove",
+    "town": "Blooming Grove",
+    "lat": 41.3802,
+    "lon": -74.1725,
+    "address": "819 Route 208, Monroe, NY"
+  },
+  "Sparrow Bush FD": {
+    "name": "Sparrowbush Engine Company",
+    "municipality": "Sparrow Bush",
+    "town": "Deerpark",
+    "lat": 41.4048,
+    "lon": -74.7235,
+    "address": "71 Main St, Sparrow Bush, NY"
+  },
+  "Stewart Air Guard FD": {
+    "name": "Stewart Air National Guard Fire Dept",
+    "municipality": "New Windsor",
+    "town": "New Windsor",
+    "lat": 41.5015,
+    "lon": -74.0882,
+    "address": "1 Maguire Way, Newburgh, NY"
+  },
+  "Tuxedo FD": {
+    "name": "Tuxedo Joint Fire District",
+    "municipality": "Tuxedo Park",
+    "town": "Tuxedo",
+    "lat": 41.1955,
+    "lon": -74.1852,
+    "address": "2 Contractors Rd, Tuxedo Park, NY"
+  },
+  "Unionville FD": {
+    "name": "Unionville Fire Department",
+    "municipality": "Unionville",
+    "town": "Minisink",
+    "lat": 41.3025,
+    "lon": -74.5618,
+    "address": "2172 Route 284, Unionville, NY"
+  },
+  "Vails Gate": {
+    "name": "Vails Gate Fire Department",
+    "municipality": "New Windsor",
+    "town": "New Windsor",
+    "lat": 41.4542,
+    "lon": -74.0548,
+    "address": "872 Blooming Grove Tpke, New Windsor, NY"
+  },
+  "Walden": {
+    "name": "Walden Fire District",
+    "municipality": "Walden",
+    "town": "Montgomery",
+    "lat": 41.5608,
+    "lon": -74.1905,
+    "address": "230 Old Orange Ave, Walden, NY"
+  },
+  "Warwick": {
+    "name": "Warwick Fire Department",
+    "municipality": "Warwick",
+    "town": "Warwick",
+    "lat": 41.2565,
+    "lon": -74.3598,
+    "address": "25 Church St Ext, Warwick, NY"
+  },
+  "Washington Heights": {
+    "name": "Washington Heights Fire Company",
+    "municipality": "Middletown",
+    "town": "Wallkill",
+    "lat": 41.4648,
+    "lon": -74.4158,
+    "address": "10 Ohio Pl, Middletown, NY"
+  },
+  "Washingtonville FD": {
+    "name": "Washingtonville Fire Department",
+    "municipality": "Washingtonville",
+    "town": "Blooming Grove",
+    "lat": 41.4285,
+    "lon": -74.1618,
+    "address": "89 East Main St, Washingtonville, NY"
+  },
+  "West Point FD": {
+    "name": "West Point Fire Department",
+    "municipality": "West Point",
+    "town": "Highlands",
+    "lat": 41.3915,
+    "lon": -73.9612,
+    "address": "646 Swift Rd, West Point, NY"
+  },
+  "Winona Lake FD": {
+    "name": "Winona Lake Engine Co. No. 2",
+    "municipality": "Newburgh",
+    "town": "Newburgh",
+    "lat": 41.5192,
+    "lon": -74.0698,
+    "address": "160 South Plank Rd, Newburgh, NY"
+  },
+  "Orange County 911 Center": {
+    "name": "Orange County Emergency Services Center",
+    "municipality": "Goshen",
+    "town": "Goshen",
+    "lat": 41.3885,
+    "lon": -74.3515,
+    "address": "22 Wells Farm Rd, Goshen, NY"
+  }
+}
